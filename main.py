@@ -1,6 +1,5 @@
-import uvicorn
+# Import the FastAPI app for ASGI compatibility
 from agent import app
 
-if __name__ == "__main__":
-    # Run the FastAPI application
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+# This file exposes the FastAPI app for the ASGI server
+# The app can be run with: uvicorn main:app --host 0.0.0.0 --port 5000 --reload
