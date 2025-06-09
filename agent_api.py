@@ -121,6 +121,7 @@ async def recipe_discovery_agent(request: AgentRequest):
                 logger.info(f"✓ Stored recipe '{recipe.title}' for user {request.user_id}")
             except Exception as e:
                 logger.error(f"✗ Failed to store recipe '{recipe.title}' for user {request.user_id}: {e}")
+                # Continue processing other recipes even if one fails
             
             # Add to response (only basic fields for frontend)
             response_recipes.append({
