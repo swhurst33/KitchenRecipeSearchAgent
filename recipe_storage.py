@@ -11,7 +11,7 @@ from supabase import create_client, Client
 logger = logging.getLogger(__name__)
 
 def get_supabase_client() -> Client:
-    """Initialize Supabase client"""
+    """Initialize Supabase client with anon key"""
     url = os.environ.get("SUPABASE_URL")
     key = os.environ.get("SUPABASE_KEY")
     
@@ -20,12 +20,23 @@ def get_supabase_client() -> Client:
     
     return create_client(url, key)
 
+def get_supabase_service_client() -> Client:
+    """Initialize Supabase client with service role key for bypassing RLS"""
+    url = os.environ.get("SUPABASE_URL")
+    service_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    
+    if not url or not service_key:
+        raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables must be set")
+    
+    return create_client(url, service_key)
+
 async def store_searched_recipe(recipe_data: Dict[str, Any], user_id: str) -> None:
     """
     Store a single searched recipe in the recipe_search table
     """
     try:
-        supabase = get_supabase_client()
+        # Use service role key to bypass RLS for inserting data
+        supabase = get_supabase_service_client()
         
         # Prepare data for recipe_search table
         search_data = {
@@ -52,7 +63,7 @@ async def store_searched_recipe(recipe_data: Dict[str, Any], user_id: str) -> No
 
 class RecipeStorage:
     def __init__(self):
-        self.supabase = get_supabase_client()
+        self.supabase = get_supabase_service_client()
     
     async def store_recipes(self, recipes: List[FullRecipeModel], user_id: str):
         """
