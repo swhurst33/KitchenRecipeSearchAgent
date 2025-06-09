@@ -36,6 +36,28 @@ app.add_middleware(
 recipe_scraper = RecipeScraper()
 recipe_storage = RecipeStorage()
 
+@app.get("/")
+def root():
+    """Root endpoint - API documentation"""
+    return {
+        "service": "Kitchnsync Recipe Discovery Agent",
+        "version": "2.0.0",
+        "status": "running",
+        "docs": "/docs",
+        "endpoints": {
+            "health": "GET /health - Service health check",
+            "agent": "POST /agent - Recipe discovery endpoint"
+        },
+        "example": {
+            "url": "/agent",
+            "method": "POST",
+            "body": {
+                "prompt": "quick keto dinner",
+                "user_id": "user123"
+            }
+        }
+    }
+
 @app.get("/health")
 def health_check():
     """Health check endpoint"""
