@@ -283,6 +283,27 @@ class RecipeAgent:
 # Initialize the agent
 recipe_agent = RecipeAgent()
 
+@app.route("/")
+def root():
+    """Root endpoint - API documentation"""
+    return jsonify({
+        "service": "Kitchnsync Recipe Discovery Agent",
+        "version": "2.0.0",
+        "status": "running",
+        "endpoints": {
+            "health": "GET /health - Service health check",
+            "agent": "POST /agent - Recipe discovery endpoint (requires JSON: {\"prompt\": \"...\", \"user_id\": \"...\"})"
+        },
+        "example": {
+            "url": "/agent",
+            "method": "POST",
+            "body": {
+                "prompt": "quick keto dinner",
+                "user_id": "user123"
+            }
+        }
+    })
+
 @app.route("/health")
 def health_check():
     """Health check endpoint"""
