@@ -1,0 +1,67 @@
+# Kitchnsync.io – Agent Context & Rules
+
+## 🧠 Purpose
+This agent is part of Kitchnsync.io — an AI-powered meal planning and grocery list tool. Its job is to:
+- Accept a natural language recipe prompt (e.g., “quick keto dinner”)
+- Extract meal intent and search real recipe websites
+- Parse the recipe content into structured data (title, image, ingredients, instructions, macros)
+- Compare ingredients against a user's pantry list stored in Supabase
+- Return structured recipes (and optionally the missing grocery list)
+
+## ✅ Must-Use Tools & Libraries
+- Use **OpenAI GPT-4 API** for keyword/intent extraction
+- Use **requests**, **BeautifulSoup**, or **recipe-scrapers** for fetching/parsing recipe content
+- Use **Supabase** for:
+  - Storing recipes (table: `recipes`)
+  - Pulling pantry items (table: `pantry_items`)
+- Use **FastAPI** or **Flask** for creating the API endpoint `/agent`
+
+## 🚫 Do Not:
+- Do not store raw HTML from pages — only structured fields
+- Do not use Selenium or heavyweight scrapers unless explicitly allowed
+- Do not return unstructured or unvalidated JSON to the frontend
+
+## 📦 Output Format Example
+
+```json
+{
+  "title": "Quick Keto Chicken Bowl",
+  "image_url": "https://example.com/chicken.jpg",
+  "source_url": "https://allrecipes.com/quick-keto-chicken",
+  "ingredients": [
+    { "text": "1 lb chicken breast", "quantity": 1, "unit": "lb" },
+    { "text": "2 cups spinach", "quantity": 2, "unit": "cups" }
+  ],
+  "instructions": [
+    "Heat oil in pan.",
+    "Add chicken and cook thoroughly.",
+    "Stir in spinach and serve."
+  ],
+  "macros": {
+    "calories": 450,
+    "protein": 38,
+    "fat": 25,
+    "carbs": 6
+  }
+}
+💾 Storage Rules
+Each recipe should be associated with a user_id (UUID) when saving
+
+Deduplicate recipes based on source_url hash
+
+Match against pantry items using case-insensitive partial match
+
+🔄 Inputs
+prompt: Natural language from frontend (e.g., “easy vegetarian lunch under 20 mins”)
+
+🔁 Outputs
+recipes: List of 3–5 structured recipe JSON objects
+
+grocery_delta (optional): List of missing ingredients
+
+🔧 Version Info
+Agent version: v0.1
+
+Maintainer: Wade Hurst
+
+API route: /agent or /recipe-agent

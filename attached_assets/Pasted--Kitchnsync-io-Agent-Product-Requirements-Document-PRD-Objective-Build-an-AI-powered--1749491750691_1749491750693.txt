@@ -1,0 +1,85 @@
+# Kitchnsync.io Agent – Product Requirements Document (PRD)
+
+## 📌 Objective
+Build an AI-powered agent that accepts a user prompt (e.g. "quick keto dinner") and returns structured, actionable recipe cards using publicly available recipe websites. Eventually match ingredients to pantry and export missing items.
+
+---
+
+## 🎯 Core Use Case
+**As a** logged-in user,  
+**I want to** input a recipe prompt,  
+**So that I can** see a list of real, complete recipes I can cook or shop for.
+
+---
+
+## 🧩 Key Features & Modules
+
+### 1. Prompt Intake
+- Input field on frontend
+- Prompt captured and sent to backend agent (Replit or Supabase Function)
+
+### 2. NLP + Intent Extraction
+- Use OpenAI to extract:
+  - Meal type
+  - Diet type
+  - Keywords
+  - Time constraints (if mentioned)
+
+### 3. Recipe Search
+- Use SerpAPI or generated URLs (based on `recipe_source` table)
+- Search 3–5 pre-approved websites (AllRecipes, Delish, etc.)
+
+### 4. Recipe Parsing
+- Visit individual recipe pages
+- Parse using Schema.org (JSON-LD)
+- Fallback: CSS selectors + AI-aided parsing
+
+### 5. Pantry Matching (Phase 2)
+- Compare recipe ingredients to user's saved pantry items
+- Highlight missing ingredients
+
+### 6. Storage
+- Save parsed recipes in `recipes` table (linked to user_id)
+- Deduplicate by URL hash
+
+### 7. Output
+- Return structured data to frontend
+- Render in recipe card components
+
+---
+
+## 📅 Milestones & Phases
+
+### Phase 1 – MVP Agent
+- [ ] Prompt → GPT → Recipe search URLs
+- [ ] Parse 1–3 recipes
+- [ ] Display recipe cards in UI
+
+### Phase 2 – Pantry Matching
+- [ ] Compare recipe vs. user pantry
+- [ ] Return grocery delta
+
+### Phase 3 – Export
+- [ ] Generate grocery list
+- [ ] (Future) Send to Instacart or Walmart API
+
+---
+
+## 🔧 Stack & Tools
+
+| Component         | Tool                      |
+|------------------|---------------------------|
+| Backend Agent     | Replit (FastAPI or Python)|
+| Frontend UI       | Bolt / Next.js            |
+| Data Storage      | Supabase (PostgreSQL)     |
+| NLP               | OpenAI GPT-4 API          |
+| Recipe Search     | SerpAPI / Custom crawler  |
+| Recipe Parsing    | recipe-scrapers, extruct  |
+
+---
+
+## 🧪 Success Criteria
+- Prompt returns at least 3 recipes with:
+  - Title, image, ingredients, instructions
+- Recipes are matched to pantry items
+- Recipes are displayed in UI within 5 seconds
