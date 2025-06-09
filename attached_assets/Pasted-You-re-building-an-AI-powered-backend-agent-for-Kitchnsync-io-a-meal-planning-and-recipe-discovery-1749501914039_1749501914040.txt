@@ -1,0 +1,53 @@
+You're building an AI-powered backend agent for Kitchnsync.io — a meal planning and recipe discovery tool.
+
+📌 Objective:
+Create a FastAPI app that exposes a single `POST /agent` endpoint, designed to be triggered by a webhook from the RecipeSearchPage frontend.
+
+The agent performs the following steps:
+1. Accepts a prompt (e.g., “quick keto dinner”) and user_id in the request body
+2. Uses OpenAI GPT-4 to extract:
+   - meal type
+   - diet type
+   - keywords
+3. Queries the Supabase `recipe_sources` table to get a list of URLs to crawl
+4. Queries the Supabase `hated_recipes` table to filter out results the user doesn’t want
+5. Crawls/searches the URLs and scrapes up to 10 recipe pages
+6. Extracts structured recipe data:
+   - ✅ Title
+   - ✅ Image URL
+   - ✅ Short description
+   - ✅ Ingredients
+   - ✅ Instructions
+   - ✅ Nutrition (optional)
+7. Returns the first 10 valid recipes (only title, image, and description) as JSON to the frontend
+8. Stores full recipe data (ingredients, instructions, etc.) into Supabase for later use in the MealPlanner module
+
+📂 Project Layout:
+Please create this file structure:
+/KitchenRecipeAgent
+├── agent_api.py # Main FastAPI app
+├── openai_handler.py # Extract keywords with OpenAI
+├── supabase_sources.py # Fetch recipe_sources from Supabase
+├── supabase_filters.py # Fetch hated_recipes and apply filters
+├── recipe_scraper.py # Scrape recipe pages and parse Schema.org
+├── recipe_storage.py # Save full recipe info to Supabase
+├── models.py # Pydantic models
+├── .env # Env secrets (OPENAI_KEY, SUPABASE_URL)
+├── README.md # Instructions for testing the endpoint
+└── requirements.txt # All needed packages
+
+markdown
+Copy
+Edit
+
+🧪 Technologies to use:
+- `fastapi`
+- `openai`
+- `httpx` or `requests`
+- `beautifulsoup4`
+- `supabase-py`
+- `python-dotenv`
+- Optional: `extruct` for parsing Schema.org JSON-LD
+
+🛑 Do not include a frontend, UI, or HTML files.
+This is a backend-only service to be triggered by an existing frontend page.
