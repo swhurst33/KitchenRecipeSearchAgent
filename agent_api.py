@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from models import AgentRequest, AgentResponse
 from openai_handler import extract_recipe_intent
 from recipe_scraper import RecipeScraper
-from recipe_storage import RecipeStorage
+from recipe_storage import RecipeStorage, store_searched_recipe
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -99,9 +99,30 @@ async def recipe_discovery_agent(request: AgentRequest):
                 message="No recipes found for your request. Please try different search terms."
             )
         
-        # Step 5: Prepare response with title, image, description only
+        # Step 5: Store each recipe in recipe_search table and prepare response
         response_recipes = []
+        stored_count = 0
+        
         for recipe in recipes:
+            # Prepare recipe data for storage
+            recipe_data = {
+                'title': recipe.title,
+                'image_url': str(recipe.image_url) if recipe.image_url else '',
+                'description': recipe.description or '',
+                'ingredients': [ing.dict() for ing in recipe.ingredients] if recipe.ingredients else [],
+                'instructions': recipe.instructions or [],
+                'source_url': str(recipe.source_url)
+            }
+            
+            # Store in recipe_search table
+            try:
+                await store_searched_recipe(recipe_data, request.user_id)
+                stored_count += 1
+                logger.info(f"✓ Stored recipe '{recipe.title}' for user {request.user_id}")
+            except Exception as e:
+                logger.error(f"✗ Failed to store recipe '{recipe.title}' for user {request.user_id}: {e}")
+            
+            # Add to response (only basic fields for frontend)
             response_recipes.append({
                 "title": recipe.title,
                 "image_url": recipe.image_url,
@@ -109,8 +130,7 @@ async def recipe_discovery_agent(request: AgentRequest):
                 "recipe_id": recipe.recipe_id
             })
         
-        # Step 6: Store full recipe data in Supabase (async)
-        await recipe_storage.store_recipes(recipes, request.user_id)
+        logger.info(f"Storage summary: {stored_count}/{len(recipes)} recipes stored in recipe_search table")
         
         logger.info(f"Successfully processed request: found {len(recipes)} recipes")
         
