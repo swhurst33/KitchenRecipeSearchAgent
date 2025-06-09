@@ -12,7 +12,7 @@ from bs4 import BeautifulSoup
 import json
 from urllib.parse import urljoin, urlparse
 from models import FullRecipeModel, IngredientModel, NutritionModel, RecipeIntent
-from supabase_sources import get_recipe_sources
+from supabase_sources import get_active_recipe_sources, build_search_urls
 from supabase_filters import filter_hated_recipes
 
 logger = logging.getLogger(__name__)
@@ -26,15 +26,7 @@ class RecipeScraper:
             }
         )
         
-        # Real recipe website search patterns
-        self.search_patterns = {
-            'allrecipes.com': 'https://www.allrecipes.com/search/results/?search={query}',
-            'eatingwell.com': 'https://www.eatingwell.com/search?q={query}',
-            'foodnetwork.com': 'https://www.foodnetwork.com/search/{query}',
-            'tasteofhome.com': 'https://www.tasteofhome.com/search/?q={query}',
-            'recipetineats.com': 'https://www.recipetineats.com/?s={query}',
-            'simplyrecipes.com': 'https://www.simplyrecipes.com/search?q={query}'
-        }
+
 
     async def find_recipes(self, keywords: List[str], meal_type: Optional[str], 
                           diet_type: Optional[str], user_id: str, max_recipes: int = 10) -> List[FullRecipeModel]:
@@ -42,17 +34,20 @@ class RecipeScraper:
         Find recipes based on search criteria
         """
         try:
-            # Get recipe sources from Supabase
-            sources = await get_recipe_sources()
+            # Get active recipe sources from Supabase
+            sources = await get_active_recipe_sources()
             
             # Build search queries
             search_queries = self._build_search_queries(keywords, meal_type, diet_type)
             
-            # Find recipe URLs from multiple sources
+            # Find recipe URLs from multiple sources using Supabase data
             recipe_urls = []
             for query in search_queries[:3]:  # Limit to 3 queries
-                for source in sources[:3]:  # Limit to 3 sources
-                    urls = await self._search_recipes_on_site(query, source)
+                # Build search URLs using Supabase source templates
+                search_urls = build_search_urls(query, sources)
+                
+                for search_url in search_urls[:5]:  # Limit to 5 search URLs per query
+                    urls = await self._search_recipes_from_url(search_url)
                     recipe_urls.extend(urls)
                     if len(recipe_urls) >= max_recipes * 2:  # Get more than needed for filtering
                         break
