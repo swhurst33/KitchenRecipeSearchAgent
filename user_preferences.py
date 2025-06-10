@@ -24,7 +24,7 @@ class UserPreferences:
                 prefs = response.data[0]
                 return {
                     'diet_type': prefs.get('diet_type', ''),
-                    'allergens': self._parse_comma_separated(prefs.get('allergens', '')),
+                    'allergens': self._parse_comma_separated(prefs.get('allergies', '')),
                     'disliked_ingredients': self._parse_comma_separated(prefs.get('disliked_ingredients', ''))
                 }
             else:

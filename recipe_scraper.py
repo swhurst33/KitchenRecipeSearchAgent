@@ -63,12 +63,17 @@ class RecipeScraper:
             # Remove duplicates
             recipe_urls = list(dict.fromkeys(recipe_urls))
             
-            # Parse recipes from URLs
+            # Filter out hated recipe URLs before parsing
+            recipe_filters = RecipeFilters()
+            filtered_urls = await recipe_filters.filter_recipe_urls(recipe_urls, user_id)
+            logger.info(f"Filtered {len(recipe_urls) - len(filtered_urls)} hated recipes for user {user_id}")
+            
+            # Parse recipes from filtered URLs
             recipes = []
             semaphore = asyncio.Semaphore(5)  # Limit concurrent requests
             
             tasks = []
-            for url in recipe_urls[:max_recipes * 2]:
+            for url in filtered_urls[:max_recipes * 2]:
                 task = self._parse_recipe_with_semaphore(semaphore, url)
                 tasks.append(task)
             
