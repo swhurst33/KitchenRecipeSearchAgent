@@ -24,8 +24,8 @@ class UserPreferences:
                 prefs = response.data[0]
                 return {
                     'diet_type': prefs.get('diet_type', ''),
-                    'allergens': self._parse_comma_separated(prefs.get('allergies', '')),
-                    'disliked_ingredients': self._parse_comma_separated(prefs.get('disliked_ingredients', ''))
+                    'allergens': prefs.get('allergies', []) or [],
+                    'disliked_ingredients': prefs.get('disliked_ingredients', []) or []
                 }
             else:
                 logger.info(f"No preferences found for user {user_id}")
@@ -48,10 +48,10 @@ class UserPreferences:
         Fetch list of hated recipe URLs for the user
         """
         try:
-            response = self.supabase.table('hated_recipes').select('recipe_url').eq('user_id', user_id).execute()
+            response = self.supabase.table('hated_recipes').select('source_url').eq('user_id', user_id).execute()
             
             if response.data:
-                return [recipe['recipe_url'] for recipe in response.data if recipe.get('recipe_url')]
+                return [recipe['source_url'] for recipe in response.data if recipe.get('source_url')]
             else:
                 logger.info(f"No hated recipes found for user {user_id}")
                 return []
@@ -79,12 +79,15 @@ class UserPreferences:
         if preferences.get('diet_type'):
             enhancements.append(f"filtered for a {preferences['diet_type']} diet")
         
-        # Add exclusions
+        # Add exclusions (handle both arrays and lists)
         exclusions = []
-        if preferences.get('allergens'):
-            exclusions.extend(preferences['allergens'])
-        if preferences.get('disliked_ingredients'):
-            exclusions.extend(preferences['disliked_ingredients'])
+        allergens = preferences.get('allergens', [])
+        disliked = preferences.get('disliked_ingredients', [])
+        
+        if allergens:
+            exclusions.extend(allergens if isinstance(allergens, list) else [allergens])
+        if disliked:
+            exclusions.extend(disliked if isinstance(disliked, list) else [disliked])
         
         if exclusions:
             exclusion_text = ', '.join(exclusions)

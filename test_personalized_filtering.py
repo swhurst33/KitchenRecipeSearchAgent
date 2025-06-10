@@ -27,8 +27,8 @@ async def test_personalized_filtering():
     test_preferences = {
         'user_id': test_user_id,
         'diet_type': 'vegan',
-        'allergens': 'peanuts,shellfish',
-        'disliked_ingredients': 'cilantro,olives'
+        'allergies': ['peanuts', 'shellfish'],
+        'disliked_ingredients': ['cilantro', 'olives']
     }
     
     try:
@@ -48,11 +48,11 @@ async def test_personalized_filtering():
     test_hated_recipes = [
         {
             'user_id': test_user_id,
-            'recipe_url': 'https://www.allrecipes.com/recipe/231506/simple-macaroni-and-cheese/'
+            'source_url': 'https://www.allrecipes.com/recipe/231506/simple-macaroni-and-cheese/'
         },
         {
             'user_id': test_user_id,
-            'recipe_url': 'https://www.example.com/bad-recipe'
+            'source_url': 'https://www.example.com/bad-recipe'
         }
     ]
     
