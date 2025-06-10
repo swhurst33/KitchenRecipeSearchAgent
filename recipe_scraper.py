@@ -13,6 +13,7 @@ import json
 from urllib.parse import urljoin, urlparse
 from models import FullRecipeModel, IngredientModel, NutritionModel, RecipeIntent
 from supabase_sources import get_active_recipe_sources, build_search_urls
+from recipe_filters import RecipeFilters
 from supabase_filters import filter_hated_recipes
 
 logger = logging.getLogger(__name__)

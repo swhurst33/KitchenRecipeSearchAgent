@@ -11,6 +11,8 @@ from models import AgentRequest, AgentResponse
 from openai_handler import extract_recipe_intent
 from recipe_scraper import RecipeScraper
 from recipe_storage import RecipeStorage, store_searched_recipe
+from user_preferences import UserPreferences
+from recipe_filters import RecipeFilters
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -79,11 +81,19 @@ async def recipe_discovery_agent(request: AgentRequest):
     try:
         logger.info(f"Processing recipe request for user {request.user_id}: {request.prompt}")
         
-        # Step 1: Extract intent using OpenAI
-        intent = extract_recipe_intent(request.prompt)
-        logger.info(f"Extracted intent: {intent}")
+        # Step 1: Fetch user preferences and enhance prompt
+        user_prefs = UserPreferences()
+        preferences = await user_prefs.get_user_preferences(request.user_id)
+        enhanced_prompt = user_prefs.enhance_prompt_with_preferences(request.prompt, preferences)
         
-        # Step 2-4: Scrape recipes based on intent
+        # Step 2: Extract intent using OpenAI with enhanced prompt
+        intent = extract_recipe_intent(enhanced_prompt)
+        logger.info(f"Extracted intent from enhanced prompt: {intent}")
+        
+        # Step 3: Initialize recipe filters
+        recipe_filters = RecipeFilters()
+        
+        # Step 4-6: Scrape recipes based on intent
         recipes = await recipe_scraper.find_recipes(
             keywords=intent.keywords,
             meal_type=intent.meal_type,
@@ -92,8 +102,11 @@ async def recipe_discovery_agent(request: AgentRequest):
             max_recipes=10
         )
         
-        if not recipes:
-            logger.warning(f"No recipes found for user {request.user_id}, prompt: {request.prompt}")
+        # Step 7: Apply personalized filtering to remove hated recipes
+        filtered_recipes = await recipe_filters.filter_parsed_recipes(recipes, request.user_id)
+        
+        if not filtered_recipes:
+            logger.warning(f"No recipes found after filtering for user {request.user_id}, prompt: {request.prompt}")
             return AgentResponse(
                 recipes=[],
                 message="No recipes found for your request. Please try different search terms."
@@ -103,7 +116,7 @@ async def recipe_discovery_agent(request: AgentRequest):
         response_recipes = []
         stored_count = 0
         
-        for recipe in recipes:
+        for recipe in filtered_recipes:
             # Prepare recipe data for storage
             recipe_data = {
                 'title': recipe.title,
