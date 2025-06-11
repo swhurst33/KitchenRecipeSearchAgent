@@ -35,29 +35,37 @@ class RecipeScraper:
 
 
     async def find_recipes(self, keywords: List[str], meal_type: Optional[str], 
-                          diet_type: Optional[str], user_id: str, max_recipes: int = 10) -> List[FullRecipeModel]:
+                          diet_type: Optional[str], user_id: str, max_recipes: int = 10, 
+                          enhanced_prompt: Optional[str] = None) -> List[FullRecipeModel]:
         """
-        Find recipes based on search criteria
+        Find recipes based on search criteria using Supabase recipe sources
         """
         try:
             # Get active recipe sources from Supabase
             sources = await get_active_recipe_sources()
             
-            # Build search queries
-            search_queries = self._build_search_queries(keywords, meal_type, diet_type)
+            if not sources:
+                logger.warning("No active recipe sources found in Supabase")
+                return []
             
-            # Find recipe URLs from multiple sources using Supabase data
+            # Use enhanced prompt if provided, otherwise build from keywords
+            if enhanced_prompt:
+                search_urls = build_search_urls(enhanced_prompt, sources)
+                logger.info(f"Using enhanced prompt: {enhanced_prompt}")
+            else:
+                # Fallback to traditional query building
+                search_queries = self._build_search_queries(keywords, meal_type, diet_type)
+                search_urls = []
+                for query in search_queries[:3]:
+                    urls = build_search_urls(query, sources)
+                    search_urls.extend(urls)
+            
+            # Find recipe URLs from search URLs
             recipe_urls = []
-            for query in search_queries[:3]:  # Limit to 3 queries
-                # Build search URLs using Supabase source templates
-                search_urls = build_search_urls(query, sources)
-                
-                for search_url in search_urls[:5]:  # Limit to 5 search URLs per query
-                    urls = await self._search_recipes_on_url(search_url)
-                    recipe_urls.extend(urls)
-                    if len(recipe_urls) >= max_recipes * 2:  # Get more than needed for filtering
-                        break
-                if len(recipe_urls) >= max_recipes * 2:
+            for search_url in search_urls[:5]:  # Limit to 5 search URLs
+                urls = await self._search_recipes_on_url(search_url)
+                recipe_urls.extend(urls)
+                if len(recipe_urls) >= max_recipes * 2:  # Get more than needed for filtering
                     break
             
             # Remove duplicates

@@ -29,8 +29,8 @@ async def get_active_recipe_sources() -> List[Dict[str, str]]:
         
         # Query active recipe sources from Supabase
         response = supabase.table('recipe_sources').select(
-            'id, site_name, url_template, is_active'
-        ).eq('is_active', True).execute()
+            'id, site_name, url_template, active'
+        ).eq('active', True).execute()
         
         if response.data:
             logger.info(f"Fetched {len(response.data)} active recipe sources from Supabase")
