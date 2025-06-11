@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
+
 def extract_search_keywords(enriched_prompt: str) -> list[str]:
     """
     Extract 3-5 optimized keywords from enriched prompt for search crawler use
@@ -38,40 +39,50 @@ def extract_search_keywords(enriched_prompt: str) -> list[str]:
                     Ignore common words like: recipe, cooking, make, want, need, the, and, or
                     
                     Return a JSON array of 3-5 keywords:
-                    ["chicken", "grilled", "mediterranean", "healthy"]"""
+                    ["chicken", "grilled", "mediterranean", "healthy"]""",
                 },
                 {
                     "role": "user",
-                    "content": f"Extract search keywords from: {enriched_prompt}"
-                }
+                    "content": f"Extract search keywords from: {enriched_prompt}",
+                },
             ],
             response_format={"type": "json_object"},
-            temperature=0.2
+            temperature=0.2,
         )
-        
+
         content = response.choices[0].message.content or ""
         result = json.loads(content)
-        
+
         # Handle different response formats
         if isinstance(result, list):
             keywords = result
         elif isinstance(result, dict):
-            keywords = result.get('keywords', list(result.values())[0] if result else [])
+            keywords = result.get(
+                "keywords", list(result.values())[0] if result else []
+            )
         else:
             keywords = []
-            
+
         # Ensure we have 3-5 keywords
         if len(keywords) < 3:
-            fallback_keywords = enriched_prompt.lower().replace(',', ' ').split()
-            keywords.extend([k for k in fallback_keywords if k not in keywords and len(k) > 2])
-            
+            fallback_keywords = enriched_prompt.lower().replace(",", " ").split()
+            keywords.extend(
+                [k for k in fallback_keywords if k not in keywords and len(k) > 2]
+            )
+
         return keywords[:5]  # Limit to 5 keywords
-        
+
     except Exception as e:
         logger.error(f"Error extracting keywords with OpenAI: {e}")
         # Fallback keyword extraction
-        words = enriched_prompt.lower().replace(',', ' ').split()
-        return [word for word in words if len(word) > 3 and word not in ['recipe', 'cooking', 'make', 'want', 'need']][:5]
+        words = enriched_prompt.lower().replace(",", " ").split()
+        return [
+            word
+            for word in words
+            if len(word) > 3
+            and word not in ["recipe", "cooking", "make", "want", "need"]
+        ][:5]
+
 
 def extract_recipe_intent(prompt: str) -> RecipeIntent:
     """
@@ -101,28 +112,28 @@ def extract_recipe_intent(prompt: str) -> RecipeIntent:
                         "cuisine_type": "italian"
                     }
                     
-                    If any field is not clear from the prompt, set it to null."""
+                    If any field is not clear from the prompt, set it to null.""",
                 },
                 {
-                    "role": "user", 
-                    "content": f"Extract intent from this recipe prompt: {prompt}"
-                }
+                    "role": "user",
+                    "content": f"Extract intent from this recipe prompt: {prompt}",
+                },
             ],
             response_format={"type": "json_object"},
-            temperature=0.3
+            temperature=0.3,
         )
-        
+
         content = response.choices[0].message.content or ""
         result = json.loads(content)
-        
+
         return RecipeIntent(
             meal_type=result.get("meal_type"),
             diet_type=result.get("diet_type"),
             keywords=result.get("keywords", []),
             time_constraint=result.get("time_constraint"),
-            cuisine_type=result.get("cuisine_type")
+            cuisine_type=result.get("cuisine_type"),
         )
-        
+
     except Exception as e:
         logger.error(f"Error extracting intent with OpenAI: {e}")
         # Fallback to simple keyword extraction
@@ -132,5 +143,5 @@ def extract_recipe_intent(prompt: str) -> RecipeIntent:
             meal_type=None,
             diet_type=None,
             time_constraint=None,
-            cuisine_type=None
+            cuisine_type=None,
         )
