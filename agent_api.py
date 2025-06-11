@@ -16,6 +16,7 @@ from recipe_filters import RecipeFilters
 from prompt_enricher import PromptEnricher
 from recipe_crawler import RecipeCrawler
 from recipe_bulk_storage import RecipeBulkStorage
+from agent_logger import log_agent_activity
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -119,44 +120,44 @@ async def recipe_discovery_agent(request: AgentRequest):
                 message="No recipes found for your request. Please try different search terms."
             )
         
-        # Step 5: Apply filtering and prepare response from Task 4 data
-        response_recipes = []
-        stored_count = 0
+        # Step 5: Apply filtering for hated recipes
+        user_context = await context_loader.load_user_context(request.user_id)
+        excluded_urls = set(user_context.get('excluded_urls', []))
         
+        filtered_recipes = []
         for recipe_dict in recipes_data:
-            # Apply URL filtering for hated recipes
             source_url = recipe_dict.get('source_url', '')
-            user_context = await context_loader.load_user_context(request.user_id)
-            excluded_urls = set(user_context.get('excluded_urls', []))
-            
-            if source_url in excluded_urls:
+            if source_url not in excluded_urls:
+                filtered_recipes.append(recipe_dict)
+            else:
                 logger.info(f"Filtered out hated recipe: {recipe_dict.get('title', 'Unknown')}")
-                continue
-            
-            # Store in recipe_search table using Task 4 format
-            try:
-                await store_searched_recipe(recipe_data, request.user_id)
-                stored_count += 1
-                logger.info(f"✓ Stored recipe '{recipe.title}' for user {request.user_id}")
-            except Exception as e:
-                logger.error(f"✗ Failed to store recipe '{recipe.title}' for user {request.user_id}: {e}")
-                # Continue processing other recipes even if one fails
-            
-            # Add to response (only basic fields for frontend)
-            response_recipes.append({
-                "title": recipe.title,
-                "image_url": recipe.image_url,
-                "description": recipe.description,
-                "recipe_id": recipe.recipe_id
-            })
         
-        logger.info(f"Storage summary: {stored_count}/{len(recipes)} recipes stored in recipe_search table")
+        # Step 6: Task 5 - Bulk insert recipes into recipe_search table
+        bulk_storage = RecipeBulkStorage()
+        stored_count = await bulk_storage.insert_recipes_bulk(filtered_recipes, request.user_id)
         
-        logger.info(f"Successfully processed request: found {len(recipes)} recipes")
+        # Step 7: Log agent activity for debugging
+        try:
+            log_agent_activity(request.user_id, request.prompt, stored_count)
+        except Exception as e:
+            logger.error(f"Failed to log agent activity: {e}")
+            # Continue - logging failure should not crash the agent
+        
+        # Step 8: Prepare response for frontend
+        response_recipes = []
+        for recipe_dict in filtered_recipes[:10]:  # Limit to 10 for response
+            response_recipes.append(RecipeResponse(
+                title=recipe_dict.get('title', ''),
+                image_url=recipe_dict.get('image_url'),
+                description=recipe_dict.get('description', ''),
+                recipe_id=recipe_dict.get('source_url', '')  # Use source_url as recipe_id
+            ))
+        
+        logger.info(f"Bulk stored {stored_count} recipes and returning {len(response_recipes)} in response")
         
         return AgentResponse(
             recipes=response_recipes,
-            message=f"Found {len(recipes)} recipes for '{request.prompt}'"
+            message=f"Found {len(response_recipes)} recipes" if response_recipes else None
         )
         
     except Exception as e:
