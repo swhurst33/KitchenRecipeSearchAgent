@@ -14,6 +14,7 @@ from recipe_storage import RecipeStorage, store_searched_recipe
 from user_preferences import UserContextLoader
 from recipe_filters import RecipeFilters
 from prompt_enricher import PromptEnricher
+from recipe_crawler import RecipeCrawler
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -103,42 +104,35 @@ async def recipe_discovery_agent(request: AgentRequest):
         # Step 3: Initialize recipe filters
         recipe_filters = RecipeFilters()
         
-        # Step 4-6: Scrape recipes using enriched prompt and extracted keywords
-        recipes = await recipe_scraper.find_recipes(
-            keywords=search_keywords,  # Use extracted keywords from Task 3
-            meal_type=intent.meal_type,
-            diet_type=intent.diet_type,
-            user_id=request.user_id,
-            max_recipes=10,
-            enhanced_prompt=enriched_prompt
+        # Step 4: Task 4 - Crawl pages and scrape recipes using new crawler
+        recipe_crawler = RecipeCrawler()
+        recipes_data = await recipe_crawler.crawl_and_scrape_recipes(
+            enriched_prompt=enriched_prompt,
+            max_recipes=10
         )
         
-        # Step 7: Apply personalized filtering to remove hated recipes
-        filtered_recipes = await recipe_filters.filter_parsed_recipes(recipes, request.user_id)
-        
-        if not filtered_recipes:
-            logger.warning(f"No recipes found after filtering for user {request.user_id}, prompt: {request.prompt}")
+        if not recipes_data:
+            logger.warning(f"No recipes found for user {request.user_id}, prompt: {request.prompt}")
             return AgentResponse(
                 recipes=[],
                 message="No recipes found for your request. Please try different search terms."
             )
         
-        # Step 5: Store each recipe in recipe_search table and prepare response
+        # Step 5: Apply filtering and prepare response from Task 4 data
         response_recipes = []
         stored_count = 0
         
-        for recipe in filtered_recipes:
-            # Prepare recipe data for storage
-            recipe_data = {
-                'title': recipe.title,
-                'image_url': str(recipe.image_url) if recipe.image_url else '',
-                'description': recipe.description or '',
-                'ingredients': [ing.dict() for ing in recipe.ingredients] if recipe.ingredients else [],
-                'instructions': recipe.instructions or [],
-                'source_url': str(recipe.source_url)
-            }
+        for recipe_dict in recipes_data:
+            # Apply URL filtering for hated recipes
+            source_url = recipe_dict.get('source_url', '')
+            user_context = await context_loader.load_user_context(request.user_id)
+            excluded_urls = set(user_context.get('excluded_urls', []))
             
-            # Store in recipe_search table
+            if source_url in excluded_urls:
+                logger.info(f"Filtered out hated recipe: {recipe_dict.get('title', 'Unknown')}")
+                continue
+            
+            # Store in recipe_search table using Task 4 format
             try:
                 await store_searched_recipe(recipe_data, request.user_id)
                 stored_count += 1
