@@ -4,13 +4,13 @@ Recipe filtering system for personalized results
 import logging
 from typing import List, Set
 from models import FullRecipeModel
-from user_preferences import UserPreferences
+from user_preferences import UserContextLoader
 
 logger = logging.getLogger(__name__)
 
 class RecipeFilters:
     def __init__(self):
-        self.user_prefs = UserPreferences()
+        self.context_loader = UserContextLoader()
     
     async def filter_recipe_urls(self, recipe_urls: List[str], user_id: str) -> List[str]:
         """
@@ -20,8 +20,8 @@ class RecipeFilters:
             return []
         
         try:
-            hated_urls = await self.user_prefs.get_hated_recipes(user_id)
-            hated_urls_set = set(hated_urls)
+            user_context = await self.context_loader.load_user_context(user_id)
+            hated_urls_set = set(user_context['excluded_urls'])
             
             filtered_urls = [url for url in recipe_urls if url not in hated_urls_set]
             
@@ -44,8 +44,8 @@ class RecipeFilters:
             return []
         
         try:
-            hated_urls = await self.user_prefs.get_hated_recipes(user_id)
-            hated_urls_set = set(hated_urls)
+            user_context = await self.context_loader.load_user_context(user_id)
+            hated_urls_set = set(user_context['excluded_urls'])
             
             filtered_recipes = []
             for recipe in recipes:

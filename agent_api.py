@@ -11,7 +11,7 @@ from models import AgentRequest, AgentResponse
 from openai_handler import extract_recipe_intent
 from recipe_scraper import RecipeScraper
 from recipe_storage import RecipeStorage, store_searched_recipe
-from user_preferences import UserPreferences
+from user_preferences import UserContextLoader
 from recipe_filters import RecipeFilters
 
 # Configure logging
@@ -81,10 +81,10 @@ async def recipe_discovery_agent(request: AgentRequest):
     try:
         logger.info(f"Processing recipe request for user {request.user_id}: {request.prompt}")
         
-        # Step 1: Fetch user preferences and enhance prompt
-        user_prefs = UserPreferences()
-        preferences = await user_prefs.get_user_preferences(request.user_id)
-        enhanced_prompt = user_prefs.enhance_prompt_with_preferences(request.prompt, preferences)
+        # Step 1: Load user context from new table structure
+        context_loader = UserContextLoader()
+        user_context = await context_loader.load_user_context(request.user_id)
+        enhanced_prompt = context_loader.enhance_prompt_with_context(request.prompt, user_context)
         
         # Step 2: Extract intent using OpenAI with enhanced prompt
         intent = extract_recipe_intent(enhanced_prompt)
