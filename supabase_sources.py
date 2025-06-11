@@ -41,19 +41,33 @@ async def get_active_recipe_sources() -> List[Dict[str, str]]:
             
     except Exception as e:
         logger.error(f"Error fetching recipe sources from Supabase: {e}")
-        raise e
+        return []  # Return empty list instead of raising to prevent agent failure
 
-def build_search_urls(query: str, sources: List[Dict[str, str]]) -> List[str]:
+def build_search_urls(enhanced_prompt: str, sources: List[Dict[str, str]]) -> List[str]:
     """
-    Build search URLs from recipe sources and query
+    Build search URLs from recipe sources and enhanced prompt with user context
+    
+    Args:
+        enhanced_prompt: User prompt enhanced with diet_type and EXCLUDE ingredients
+        sources: List of active recipe sources from Supabase
+        
+    Returns:
+        List of formatted search URLs with {query} replaced
     """
     urls = []
+    
+    # Format the enhanced prompt for URL encoding
+    formatted_query = enhanced_prompt.replace(' ', '+')
+    
     for source in sources:
         url_template = source.get('url_template', '')
+        site_name = source.get('site_name', 'Unknown')
+        
         if '{query}' in url_template:
-            search_url = url_template.format(query=query.replace(' ', '+'))
+            search_url = url_template.format(query=formatted_query)
             urls.append(search_url)
+            logger.info(f"Built search URL for {site_name}: {search_url}")
         else:
-            logger.warning(f"Invalid URL template for {source.get('site_name')}: {url_template}")
+            logger.warning(f"Invalid URL template for {site_name}: {url_template} (missing {{query}} placeholder)")
     
     return urls

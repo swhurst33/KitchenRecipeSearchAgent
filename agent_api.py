@@ -93,13 +93,14 @@ async def recipe_discovery_agent(request: AgentRequest):
         # Step 3: Initialize recipe filters
         recipe_filters = RecipeFilters()
         
-        # Step 4-6: Scrape recipes based on intent
+        # Step 4-6: Scrape recipes using enhanced prompt and Supabase sources
         recipes = await recipe_scraper.find_recipes(
             keywords=intent.keywords,
             meal_type=intent.meal_type,
             diet_type=intent.diet_type,
             user_id=request.user_id,
-            max_recipes=10
+            max_recipes=10,
+            enhanced_prompt=enhanced_prompt
         )
         
         # Step 7: Apply personalized filtering to remove hated recipes
