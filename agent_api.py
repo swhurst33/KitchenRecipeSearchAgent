@@ -9,10 +9,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from models import AgentRequest, AgentResponse, RecipeResponse
 from openai_handler import extract_recipe_intent
-from recipe_scraper import RecipeScraper
-from recipe_storage import RecipeStorage, store_searched_recipe
 from user_preferences import UserContextLoader
-from recipe_filters import RecipeFilters
 from prompt_enricher import PromptEnricher
 from recipe_crawler import RecipeCrawler
 from recipe_bulk_storage import RecipeBulkStorage
@@ -38,9 +35,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize components
-recipe_scraper = RecipeScraper()
-recipe_storage = RecipeStorage()
+# Components are initialized as needed in endpoints
 
 @app.get("/")
 def root():
@@ -102,9 +97,6 @@ async def recipe_discovery_agent(request: AgentRequest):
         # Step 3: Extract intent using OpenAI with enriched prompt
         intent = extract_recipe_intent(enriched_prompt)
         logger.info(f"Extracted intent from enriched prompt: {intent}")
-        
-        # Step 3: Initialize recipe filters
-        recipe_filters = RecipeFilters()
         
         # Step 4: Task 4 - Crawl pages and scrape recipes using new crawler
         recipe_crawler = RecipeCrawler()
