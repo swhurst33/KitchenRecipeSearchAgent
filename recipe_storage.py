@@ -1,11 +1,11 @@
 """
-Supabase integration for storing recipe data
+Legacy recipe storage functions - maintained for backward compatibility
+Note: Primary storage now handled by RecipeBulkStorage system
 """
 
 import logging
 import os
-from typing import List, Dict, Any
-from models import FullRecipeModel
+from typing import Dict, Any
 from supabase import create_client, Client
 
 logger = logging.getLogger(__name__)
@@ -61,38 +61,4 @@ async def store_searched_recipe(recipe_data: Dict[str, Any], user_id: str) -> No
         logger.error(f"Failed to store recipe '{recipe_data.get('title', 'Unknown')}' for user {user_id}: {e}")
         # Don't raise exception - storage failure shouldn't break the response
 
-class RecipeStorage:
-    def __init__(self):
-        self.supabase = get_supabase_service_client()
-    
-    async def store_recipes(self, recipes: List[FullRecipeModel], user_id: str):
-        """
-        Store full recipe data in Supabase for later use in MealPlanner module
-        """
-        try:
-            stored_count = 0
-            for recipe in recipes:
-                try:
-                    recipe_data = {
-                        'user_id': user_id,
-                        'title': recipe.title,
-                        'description': recipe.description or '',
-                        'image_url': str(recipe.image_url) if recipe.image_url else '',
-                        'source_url': str(recipe.source_url),
-                        'ingredients': [ing.dict() for ing in recipe.ingredients] if recipe.ingredients else [],
-                        'instructions': recipe.instructions or [],
-                    }
-                    
-                    # Store using the new function
-                    await store_searched_recipe(recipe_data, user_id)
-                    stored_count += 1
-                    
-                except Exception as e:
-                    logger.error(f"Error storing individual recipe {recipe.title}: {e}")
-                    continue
-            
-            logger.info(f"Successfully stored {stored_count}/{len(recipes)} recipes for user {user_id}")
-            
-        except Exception as e:
-            logger.error(f"Error storing recipes: {e}")
-            # Don't raise exception - storage failure shouldn't break the response
+# RecipeStorage class removed - replaced by RecipeBulkStorage system
