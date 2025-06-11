@@ -13,6 +13,7 @@ from recipe_scraper import RecipeScraper
 from recipe_storage import RecipeStorage, store_searched_recipe
 from user_preferences import UserContextLoader
 from recipe_filters import RecipeFilters
+from prompt_enricher import PromptEnricher
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -84,23 +85,32 @@ async def recipe_discovery_agent(request: AgentRequest):
         # Step 1: Load user context from new table structure
         context_loader = UserContextLoader()
         user_context = await context_loader.load_user_context(request.user_id)
-        enhanced_prompt = context_loader.enhance_prompt_with_context(request.prompt, user_context)
         
-        # Step 2: Extract intent using OpenAI with enhanced prompt
-        intent = extract_recipe_intent(enhanced_prompt)
-        logger.info(f"Extracted intent from enhanced prompt: {intent}")
+        # Step 2: Task 3 - Enrich prompt and extract search keywords using OpenAI
+        prompt_enricher = PromptEnricher()
+        enrichment_result = prompt_enricher.process_prompt_for_search(request.prompt, user_context)
+        
+        enriched_prompt = enrichment_result['enriched_prompt']
+        search_keywords = enrichment_result['search_keywords']
+        
+        logger.info(f"Enriched prompt: {enriched_prompt}")
+        logger.info(f"Extracted search keywords: {search_keywords}")
+        
+        # Step 3: Extract intent using OpenAI with enriched prompt
+        intent = extract_recipe_intent(enriched_prompt)
+        logger.info(f"Extracted intent from enriched prompt: {intent}")
         
         # Step 3: Initialize recipe filters
         recipe_filters = RecipeFilters()
         
-        # Step 4-6: Scrape recipes using enhanced prompt and Supabase sources
+        # Step 4-6: Scrape recipes using enriched prompt and extracted keywords
         recipes = await recipe_scraper.find_recipes(
-            keywords=intent.keywords,
+            keywords=search_keywords,  # Use extracted keywords from Task 3
             meal_type=intent.meal_type,
             diet_type=intent.diet_type,
             user_id=request.user_id,
             max_recipes=10,
-            enhanced_prompt=enhanced_prompt
+            enhanced_prompt=enriched_prompt
         )
         
         # Step 7: Apply personalized filtering to remove hated recipes
