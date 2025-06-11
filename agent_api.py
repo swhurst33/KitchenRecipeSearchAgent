@@ -7,7 +7,7 @@ import os
 import logging
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from models import AgentRequest, AgentResponse
+from models import AgentRequest, AgentResponse, RecipeResponse
 from openai_handler import extract_recipe_intent
 from recipe_scraper import RecipeScraper
 from recipe_storage import RecipeStorage, store_searched_recipe
@@ -15,6 +15,7 @@ from user_preferences import UserContextLoader
 from recipe_filters import RecipeFilters
 from prompt_enricher import PromptEnricher
 from recipe_crawler import RecipeCrawler
+from recipe_bulk_storage import RecipeBulkStorage
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
