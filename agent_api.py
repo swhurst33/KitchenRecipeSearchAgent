@@ -29,14 +29,12 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
-
-# Components are initialized as needed in endpoints
-
 
 @app.get("/")
 def root():
@@ -57,7 +55,6 @@ def root():
         },
     }
 
-
 @app.get("/health")
 def health_check():
     """Health check endpoint"""
@@ -66,7 +63,6 @@ def health_check():
         "service": "Kitchnsync Recipe Agent",
         "version": "2.0.0",
     }
-
 
 @app.post("/agent", response_model=AgentResponse)
 async def recipe_discovery_agent(request: AgentRequest):
@@ -156,9 +152,7 @@ async def recipe_discovery_agent(request: AgentRequest):
                     title=recipe_dict.get("title", ""),
                     image_url=recipe_dict.get("image_url"),
                     description=recipe_dict.get("description", ""),
-                    recipe_id=recipe_dict.get(
-                        "source_url", ""
-                    ),  # Use source_url as recipe_id
+                    recipe_id=recipe_dict.get("source_url", ""),
                 )
             )
 
