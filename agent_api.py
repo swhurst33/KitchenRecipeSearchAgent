@@ -1,9 +1,3 @@
-"""
-Main FastAPI app for Kitchnsync Recipe Discovery Agent
-Backend-only service triggered by webhook from RecipeSearchPage frontend
-"""
-
-import logging
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -14,81 +8,36 @@ from prompt_enricher import PromptEnricher
 from recipe_crawler import RecipeCrawler
 from recipe_bulk_storage import RecipeBulkStorage
 from agent_logger import log_agent_activity
+import logging
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize FastAPI app
-app = FastAPI(
-    title="Kitchnsync Recipe Discovery Agent",
-    description=
-    "AI-powered backend agent for recipe discovery and meal planning",
-    version="2.0.0",
-)
+app = FastAPI()
 
-# ✅ Standard CORS middleware
+# ✅ CORS fix
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Replace * with your frontend dev URL
+    allow_origins=[
+        "http://localhost:5173",
+        "https://kitchen-recipe-agent-swhurst33.replit.app"
+    ],
     allow_credentials=True,
-    allow_methods=["POST", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ✅ Fallback CORS header injection (works around Replit/Cloudflare bugs)
-@app.middleware("http")
-async def add_cors_headers(request: Request, call_next):
-    response = await call_next(request)
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = "*"
-    return response
 
-
-# ✅ Explicit preflight handler
+# ✅ OPTIONS route handler
 @app.options("/agent")
-async def preflight_handler():
+async def options_handler():
     return JSONResponse(content={"status": "ok"})
-
-
-@app.get("/")
-def root():
-    return {
-        "service": "Kitchnsync Recipe Discovery Agent",
-        "version": "2.0.0",
-        "status": "running",
-        "docs": "/docs",
-        "endpoints": {
-            "health": "GET /health - Service health check",
-            "agent": "POST /agent - Recipe discovery endpoint",
-        },
-        "example": {
-            "url": "/agent",
-            "method": "POST",
-            "body": {
-                "prompt": "quick keto dinner",
-                "user_id": "user123"
-            },
-        },
-    }
-
-
-@app.get("/health")
-def health_check():
-    return {
-        "status": "healthy",
-        "service": "Kitchnsync Recipe Agent",
-        "version": "2.0.0",
-    }
 
 
 @app.post("/agent", response_model=AgentResponse)
 async def recipe_discovery_agent(request: AgentRequest):
     try:
-        logger.info(
-            f"Processing recipe request for user {request.user_id}: {request.prompt}"
-        )
+        logger.info(f"Processing recipe request for user {request.user_id}: {request.prompt}")
 
         # Step 1: Load user preferences
         context_loader = UserContextLoader()
@@ -159,8 +108,3 @@ async def recipe_discovery_agent(request: AgentRequest):
     except Exception as e:
         logger.error(f"Agent error: {e}")
         raise HTTPException(status_code=500, detail=f"Agent failed: {str(e)}")
-
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
