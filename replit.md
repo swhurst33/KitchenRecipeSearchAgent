@@ -104,8 +104,15 @@ The Kitchnsync Recipe Discovery Agent is an AI-powered backend service that acce
 - **Key Packages**: FastAPI, OpenAI, Supabase, BeautifulSoup4, httpx
 - **Version Pinning**: Specific versions for stability
 
+## Recent Changes
+- June 13, 2025: Fixed indentation and syntax errors in agent_api.py
+- June 13, 2025: Resolved duplicate function definitions and CORS configuration 
+- June 13, 2025: Fixed image URL validation for empty strings in recipe responses
+- June 13, 2025: Confirmed working recipe discovery with authentic data from Serious Eats, NY Times Cooking
+- June 13, 2025: Verified complete pipeline functionality including web scraping, user personalization, and database storage
+
 ## Changelog
-- June 13, 2025. Initial setup
+- June 13, 2025: Initial setup and comprehensive development of recipe discovery agent
 
 ## User Preferences
 

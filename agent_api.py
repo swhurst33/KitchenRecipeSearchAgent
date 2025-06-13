@@ -88,14 +88,19 @@ async def recipe_discovery_agent(request: AgentRequest):
             logger.error(f"Logging failed: {e}")
 
         # Step 8: Prepare frontend response
-        response_recipes = [
-            RecipeResponse(
+        response_recipes = []
+        for r in filtered_recipes[:10]:
+            image_url = r.get("image_url")
+            # Only include image_url if it's a valid non-empty string
+            if not image_url or image_url.strip() == "":
+                image_url = None
+            
+            response_recipes.append(RecipeResponse(
                 title=r.get("title", ""),
-                image_url=r.get("image_url"),
+                image_url=image_url,
                 description=r.get("description", ""),
                 recipe_id=r.get("source_url", ""),
-            ) for r in filtered_recipes[:10]
-        ]
+            ))
 
         logger.info(f"Returning {len(response_recipes)} recipes")
 
