@@ -22,24 +22,20 @@ logger = logging.getLogger(__name__)
 # Initialize FastAPI app
 app = FastAPI(
     title="Kitchnsync Recipe Discovery Agent",
-    description="AI-powered backend agent for recipe discovery and meal planning",
-    version="2.0.0"
+    description=
+    "AI-powered backend agent for recipe discovery and meal planning",
+    version="2.0.0",
 )
 
-# Add CORS middleware
+# ✅ CORS config for local dev (Vite frontend)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["*"],  # Local frontend origin
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"]
 )
 
-# Handle preflight requests
-@app.options("/agent")
-def options_handler():
-    return {"status": "ok"}
 
 @app.get("/")
 def root():
@@ -55,9 +51,13 @@ def root():
         "example": {
             "url": "/agent",
             "method": "POST",
-            "body": {"prompt": "quick keto dinner", "user_id": "user123"},
+            "body": {
+                "prompt": "quick keto dinner",
+                "user_id": "user123"
+            },
         },
     }
+
 
 @app.get("/health")
 def health_check():
@@ -66,6 +66,13 @@ def health_check():
         "service": "Kitchnsync Recipe Agent",
         "version": "2.0.0",
     }
+
+
+# ✅ Handle CORS preflight request explicitly
+@app.options("/agent")
+async def preflight_handler():
+    return {"status": "ok"}
+
 
 @app.post("/agent", response_model=AgentResponse)
 async def recipe_discovery_agent(request: AgentRequest):
@@ -81,8 +88,7 @@ async def recipe_discovery_agent(request: AgentRequest):
         # Step 2: Enrich prompt & extract search keywords
         prompt_enricher = PromptEnricher()
         enrichment_result = prompt_enricher.process_prompt_for_search(
-            request.prompt, user_context
-        )
+            request.prompt, user_context)
 
         enriched_prompt = enrichment_result["enriched_prompt"]
         search_keywords = enrichment_result["search_keywords"]
@@ -96,8 +102,7 @@ async def recipe_discovery_agent(request: AgentRequest):
         # Step 4: Crawl pages
         recipe_crawler = RecipeCrawler()
         recipes_data = await recipe_crawler.crawl_and_scrape_recipes(
-            enriched_prompt=enriched_prompt, max_recipes=10
-        )
+            enriched_prompt=enriched_prompt, max_recipes=10)
 
         if not recipes_data:
             logger.warning("No recipes found.")
@@ -109,14 +114,14 @@ async def recipe_discovery_agent(request: AgentRequest):
         # Step 5: Filter out user-hated recipes
         excluded_urls = set(user_context.get("excluded_urls", []))
         filtered_recipes = [
-            r for r in recipes_data if r.get("source_url", "") not in excluded_urls
+            r for r in recipes_data
+            if r.get("source_url", "") not in excluded_urls
         ]
 
         # Step 6: Store to Supabase
         bulk_storage = RecipeBulkStorage()
         stored_count = await bulk_storage.insert_recipes_bulk(
-            filtered_recipes, request.user_id
-        )
+            filtered_recipes, request.user_id)
 
         # Step 7: Log the agent run
         try:
@@ -131,22 +136,21 @@ async def recipe_discovery_agent(request: AgentRequest):
                 image_url=r.get("image_url"),
                 description=r.get("description", ""),
                 recipe_id=r.get("source_url", ""),
-            )
-            for r in filtered_recipes[:10]
+            ) for r in filtered_recipes[:10]
         ]
 
         logger.info(f"Returning {len(response_recipes)} recipes")
 
         return AgentResponse(
             recipes=response_recipes,
-            message=f"Found {len(response_recipes)} recipes" if response_recipes else None,
+            message=f"Found {len(response_recipes)} recipes"
+            if response_recipes else None,
         )
 
     except Exception as e:
         logger.error(f"Agent error: {e}")
-        raise HTTPException(
-            status_code=500, detail=f"Agent failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Agent failed: {str(e)}")
+
 
 if __name__ == "__main__":
     import uvicorn
