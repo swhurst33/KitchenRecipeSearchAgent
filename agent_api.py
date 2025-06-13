@@ -3,10 +3,10 @@ Main FastAPI app for Kitchnsync Recipe Discovery Agent
 Backend-only service triggered by webhook from RecipeSearchPage frontend
 """
 
-import os
 import logging
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from models import AgentRequest, AgentResponse, RecipeResponse
 from openai_handler import extract_recipe_intent
 from user_preferences import UserContextLoader
@@ -27,14 +27,29 @@ app = FastAPI(
     version="2.0.0",
 )
 
-# ✅ CORS config for local dev (Vite frontend)
+# ✅ Standard CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Local frontend origin
+    allow_origins=["http://localhost:5173"],  # Replace * with your frontend dev URL
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["POST", "OPTIONS"],
     allow_headers=["*"],
 )
+
+# ✅ Fallback CORS header injection (works around Replit/Cloudflare bugs)
+@app.middleware("http")
+async def add_cors_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
+
+
+# ✅ Explicit preflight handler
+@app.options("/agent")
+async def preflight_handler():
+    return JSONResponse(content={"status": "ok"})
 
 
 @app.get("/")
@@ -66,12 +81,6 @@ def health_check():
         "service": "Kitchnsync Recipe Agent",
         "version": "2.0.0",
     }
-
-
-# ✅ Handle CORS preflight request explicitly
-@app.options("/agent")
-async def preflight_handler():
-    return {"status": "ok"}
 
 
 @app.post("/agent", response_model=AgentResponse)
