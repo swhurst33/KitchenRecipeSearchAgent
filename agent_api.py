@@ -15,23 +15,18 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-# ✅ CORS fix
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "https://kitchen-recipe-agent-swhurst33.replit.app"
-    ],
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-# ✅ OPTIONS route handler
 @app.options("/agent")
-async def options_handler():
-    return JSONResponse(content={"status": "ok"})
+async def preflight_handler():
+    return {}
 
 
 @app.post("/agent", response_model=AgentResponse)
